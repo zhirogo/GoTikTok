@@ -1,0 +1,150 @@
+version: "2"
+
+run:
+  concurrency: 4
+  # 分析超时时间
+  timeout: 5m
+  # 包含测试文件
+  tests: true
+
+issues:
+  max-issues-per-linter: 0 # 0 = 不限制（希望看到全部问题）
+  max-same-issues: 50
+
+linters:
+  enable:
+    # 正确性
+    - govet            # 内置检查：锁拷贝、printf 格式、struct tag、不可达代码
+    - staticcheck      # 深度静态分析：废弃 API、常见错误、可简化写法
+    - unused           # 未使用的变量、函数、类型
+    - errcheck         # 未检查的错误返回和类型断言
+    - errorlint        # errors.Is/As 与 %w 包装的正确用法（Go 1.13+）
+    - nilerr           # 在 err 非 nil 时返回 nil error
+    - forcetypeassert  # 缺少 comma-ok 检查的类型断言
+    - copyloopvar      # 循环变量拷贝问题（Go 1.22+）
+    - durationcheck    # 检测 time.Duration * time.Duration 的 bug
+    - reassign         # 包级变量的重复赋值
+    # 风格
+    - gocritic         # 观点性风格：多余转换、range 拷贝、冗余代码
+    - revive           # 命名约定、导出类型、包名口吃
+    - wsl_v5           # 可读性的空白与空行规则
+    - whitespace       # 行尾空白、多余空行
+    - godot            # 导出符号注释必须以句号结尾
+    - misspell         # 标识符和注释中的常见英文拼写错误
+    - dupword          # 注释和字符串中的重复单词（the the、is is）
+    - predeclared      # 遮蔽 Go 内置名称（len、cap、error）
+    - errname          # 错误类型/变量命名约定（ErrFoo、FooError）
+    - asciicheck       # 非 ASCII 标识符（防止同形字/木马源攻击）
+    # 复杂度
+    - gocyclo          # 圈复杂度阈值
+    - nestif           # 深度嵌套的 if/else 链
+    - funlen           # 函数长度限制（行数与语句数）
+    - dupl             # 代码重复检测
+    # 性能
+    - perfsprint       # 比 fmt.Sprintf 更快的替代方案
+    - unconvert        # 多余的类型转换
+    - ineffassign      # 赋值后从未被读取的变量
+    - goconst          # 重复的字面量应提取为常量
+    # 安全与资源
+    - gosec            # 安全扫描：SQL 注入、硬编码凭据、弱加密、路径穿越
+    - bidichk          # 危险的 Unicode 双向序列（木马源 CVE-2021-42574）
+    - bodyclose        # 未关闭的 HTTP 响应体（连接泄漏）
+    - noctx            # HTTP 请求缺少 context.Context
+    - containedctx     # context.Context 存于结构体字段而非作为参数传递
+    - fatcontext       # 在循环中使用 context.WithValue/WithCancel（无界 context 链、内存泄漏）
+    - sqlclosecheck    # 未关闭的 sql.Rows 与 sql.Stmt
+    - rowserrcheck     # 迭代后未检查 sql.Rows.Err()
+    # 日志
+    - sloglint         # log/slog 代码风格一致性
+    - loggercheck      # 结构化日志器（zap、slog、logr）键值对校验
+    # 测试
+    - testifylint      # testify 最佳实践
+    - thelper          # 测试助手缺少 t.Helper()
+    - usetesting       # 测试中应使用 t.Setenv/t.TempDir 而非 os 等价函数
+    - paralleltest     # 测试与子测试缺少 t.Parallel()
+    # 现代化与元
+    - modernize        # 可用新 Go 特性替代的旧写法
+    - exptostd         # 用标准库替代 golang.org/x/exp/ 中的函数
+    - intrange         # 用整数 range 替代 C 风格循环（Go 1.22+）
+    - usestdlibvars    # 用标准库常量替代硬编码值
+    - exhaustive       # switch 未覆盖全部枚举值
+    - nolintlint       # 强制 //nolint 指令的规范用法
+
+  disable:
+    - lll              # 行长度——交给 gofmt/gofumpt
+    - prealloc         # 误报率高；仅在性能剖析后再启用
+    - wrapcheck        # 强制包装所有外部错误——作为默认太吵
+    - err113           # 强制包级哨兵错误——过于武断，破坏常见写法
+    - mnd              # 魔法数字检测器——极度吵闹，连 HTTP 200 这种常量都会误报
+    - iface            # 接口污染检测——过于武断，尚不成熟
+    - nakedret         # 裸返回——与 funlen 重叠（短函数的裸返回没问题）
+    - noinlineerr      # 禁止 `if err := ...; err != nil {}`——这是地道的 Go 写法
+    - gocognit         # 认知复杂度——与 gocyclo + nestif 冗余
+    - cyclop           # 圈复杂度——与 gocyclo 冗余
+    - depguard         # 导入允许/拒绝清单——需要按项目配置
+    - goheader         # 文件头强制——项目特有策略
+    - importas         # 导入别名强制——需要按项目配置
+    - funcorder        # 函数排序——作为默认过于武断
+    - godoclint        # godoc 校验——与 godot 和 revive 重叠
+    - varnamelen       # 变量名长度——过于武断，Go 偏爱短名
+    - exhaustruct      # 结构体字段必须全部设置——极度吵闹，破坏零值惯例
+    - gochecknoglobals # 禁止全局变量——过于严格，很多合理用法
+    - gochecknoinits   # 禁止 init() 函数——过于严格，很多合理用法
+    - unparam          # 未使用的函数参数——接口场景中等误报率
+    - makezero         # 标记 make([]T, n)——吵闹，常误解意图
+    - testpackage      # 强制 _test 包——有效但作为默认过于武断
+    - embeddedstructfieldcheck # 嵌入类型位置——轻微风格问题，不值得强制
+    - iotamixing       # 混合 const 块中的 iota——极罕见
+    - unqueryvet       # SELECT * 检测——对默认配置太偏门
+    - recvcheck        # 接收者类型一致性——与 gocritic 重叠
+    - mirror           # bytes/strings 镜像模式——实际命中很少
+    - protogetter      # proto 字段通过 getter 访问——仅适用于 protobuf 用户
+    - spancheck        # OpenTelemetry span 检查——仅适用于 OTel 用户
+    - zerologlint      # zerolog 用法——仅适用于 zerolog 用户
+
+  exclusions:
+    paths:
+      - vendor$
+      - third_party$
+      - testutils$
+      - examples$
+
+  settings:
+    dupl:
+      threshold: 100 # 数字越小越严格（token 数）
+    errcheck:
+      check-type-assertions: true
+    funlen:
+      lines: 120
+      statements: 80
+    goconst:
+      min-len: 3
+      min-occurrences: 4
+    gocyclo:
+      min-complexity: 13 # 严格；数字越小越严格
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
+
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+  disable:
+    - gci        # 导入分组/排序——gofumpt 已处理标准分组
+    - goimports  # 导入管理——与 gofumpt 冗余
+    - golines    # 行折叠——过于武断，可能破坏可读性
+    - swaggo     # swaggo 注释格式化——仅适用于 swaggo 用户
+  settings:
+    gofumpt:
+      extra-rules: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
