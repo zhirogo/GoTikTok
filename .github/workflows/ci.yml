@@ -26,13 +26,15 @@ jobs:
           go-version-file: server/go.mod
 
       # pre-commit：与本地同一份配置（--all-files 全量）
-      # SKIP 跳过 Go 钩子——CI 无 golangci-lint 二进制，
-      # Go 检查由下方 golangci-lint-action 全量承担（含 config verify）
+      # SKIP 跳过两个 Go 钩子（均依赖 CI 不存在的 golangci-lint 二进制），
+      # Go 检查与 .golangci.yml 配置校验由下方 golangci-lint-action 承担
+      #（其 verify 参数默认 true，与 config-verify 钩子等价）
       - uses: pre-commit/action@v3.0.1
         with:
           extra_args: --all-files
         env:
-          SKIP: golangci-lint
+          # 本地生效的钩子，CI 跳过两个 Go 相关（system 钩子依赖本机 golangci-lint）
+          SKIP: golangci-lint,golangci-lint-config-verify
 
       # 后端：golangci-lint（全量；verify 默认 true，自动校验 .golangci.yml）
       - uses: golangci/golangci-lint-action@v9.3.0
