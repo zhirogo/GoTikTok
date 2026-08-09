@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      # 前端依赖（pre-commit 的 prettier/eslint/tsc/vitest 钩子依赖 web/node_modules）
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+
+      # Go 环境（golangci-lint-action 需要）
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: server/go.mod
+
+      # pre-commit：与本地同一份配置（--all-files 全量）
+      # SKIP 跳过 Go 钩子——CI 无 golangci-lint 二进制，
+      # Go 检查由下方 golangci-lint-action 全量承担（含 config verify）
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files
+        env:
+          SKIP: golangci-lint
+
+      # 后端：golangci-lint（全量；verify 默认 true，自动校验 .golangci.yml）
+      - uses: golangci/golangci-lint-action@v9.3.0
+        with:
+          version: v2.12.2
+          working-directory: server
+
+      # 后端：构建与测试（testcontainers 拉真实 MySQL/Redis）
+      - run: go build ./...
+        working-directory: server
+      - run: go test ./...
+        working-directory: server
+
+      # 前端：lint + build + test（与本地钩子等价但含构建）
+      - run: npm run lint
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - run: npm run test:run
+        working-directory: web
