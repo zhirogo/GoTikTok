@@ -1,0 +1,71 @@
+# 本地提交钩子配置（pre-commit 框架）
+#
+# 版本号对应官方 release（2026-08 核实）：
+#   pre-commit-hooks v6.0.0     —— 官方基础钩子
+#   golangci-lint v2.12.2       —— 与本机安装版本一致（local system 钩子依赖本机 golangci-lint）
+#
+# 子目录执行说明：
+# - pre-commit 官方 schema 无 working_dir 键，子目录命令用 cd 子 shell 执行；
+# - 前端 npx 用 --prefix web 定位 web/node_modules（npx --no-install 不联网装包）；
+# - 因 pre-commit/mirrors-prettier 已归档（prettier 4 移除插件 API），前端不用官方镜像。
+#
+# 安装：pip install pre-commit && pre-commit install
+# CI 落地后在此文件上运行 `pre-commit run --all-files` 复用同一套检查。
+fail_fast: false
+
+repos:
+  # 基础检查（gitignore 的文件自动跳过）
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+
+  # Go：golangci-lint 必须在 server/ 模块目录内运行（根目录不支持多 go.mod，
+  # 官方 issue #828）；local system 钩子依赖本机 golangci-lint（v2.12.2）。
+  # system 钩子 entry 不经过 shell 解析，子目录命令用 bash -c 显式调用。
+  - repo: local
+    hooks:
+      - id: golangci-lint
+        name: golangci-lint
+        entry: bash -c 'cd server && golangci-lint run --new-from-rev HEAD --fix'
+        language: system
+        pass_filenames: false
+        types: [go]
+
+      - id: golangci-lint-config-verify
+        name: golangci-lint-config-verify
+        entry: bash -c 'cd server && golangci-lint config verify'
+        language: system
+        pass_filenames: false
+        files: '\.golangci\.(yml|yaml)$'
+
+  # 前端：格式化与检查（--prefix web 定位本地 node_modules）
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: npx --no-install --prefix web prettier --write
+        language: system
+        files: '^web/.*\.(ts|tsx|js|jsx|json|css|html|md)$'
+
+      - id: eslint
+        name: eslint
+        entry: npx --no-install --prefix web eslint
+        language: system
+        files: '^web/.*\.(ts|tsx|js|jsx)$'
+
+      # 类型检查需整仓库执行（tsconfig 引用了 src 全部文件）
+      - id: tsc
+        name: tsc
+        entry: npx --no-install --prefix web tsc -b web/tsconfig.json
+        language: system
+        pass_filenames: false
+        files: '^web/.*\.(ts|tsx)$'
+
+      - id: vitest
+        name: vitest
+        entry: npx --no-install --prefix web vitest run --root web
+        language: system
+        pass_filenames: false
+        files: '^web/'

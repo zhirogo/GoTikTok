@@ -134,11 +134,6 @@ formatters:
   enable:
     - gofmt
     - gofumpt
-  disable:
-    - gci        # 导入分组/排序——gofumpt 已处理标准分组
-    - goimports  # 导入管理——与 gofumpt 冗余
-    - golines    # 行折叠——过于武断，可能破坏可读性
-    - swaggo     # swaggo 注释格式化——仅适用于 swaggo 用户
   settings:
     gofumpt:
       extra-rules: true
