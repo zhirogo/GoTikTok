@@ -14,8 +14,3 @@
 | 部署 | Docker Compose |
 
 > 详细决策依据见 `docs/决策基线.md`。
-
-## 贡献指南
-
-- 参与开发请先阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)（分支策略、Commit 规范、本地开发步骤）。
-- 提交 Bug 或功能需求请使用仓库提供的 Issue 模板。
